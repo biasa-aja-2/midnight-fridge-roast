@@ -38,7 +38,9 @@ def gate(line):
 
 def main():
     line = gate(LINE)
-    output_dir = os.environ.get("MAKEFUN_OUTPUT_DIR", "/output")
+    # An empty-string MAKEFUN_OUTPUT_DIR is the same as unset: fall back
+    # to the default instead of trying to write into a relative ".".
+    output_dir = os.environ.get("MAKEFUN_OUTPUT_DIR") or "/output"
     os.makedirs(output_dir, exist_ok=True)
     path = os.path.join(output_dir, "entry.txt")
     with open(path, "w", encoding="utf-8") as handle:
@@ -47,6 +49,11 @@ def main():
         written = handle.read()
     if written != line.encode("utf-8"):
         raise ValueError("read-back mismatch")
+    # Second read-back: decode and re-check the gate so the file on disk
+    # is exactly one line with no trailing whitespace of any kind.
+    text = written.decode("utf-8")
+    if text != line or text != text.strip() or "\n" in text or "\r" in text:
+        raise ValueError("read-back line check failed")
     print("wrote {} ({} chars)".format(path, len(line)))
 
 
